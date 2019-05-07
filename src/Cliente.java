@@ -8,9 +8,7 @@ import java.awt.event.WindowEvent;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.net.Socket;
@@ -26,12 +24,12 @@ public class Cliente extends JFrame implements ActionListener, KeyListener {
   private JLabel lblHistorico;
   private JPanel pnlContent;
   private Socket socket;
-  private OutputStream ou ;
-  private Writer ouw;
-  private BufferedWriter bfw;
+  private Writer escritorSaidaServidor;
   private JTextField txtNome;
   private JTextField txtIp;
   private JTextField txtPorta;
+  private InputStreamReader leitorSaidaServidor;
+  private BufferedReader leitorServidor;
 
   public Cliente() throws IOException {
     txtNome = new JTextField("Cliente");
@@ -83,49 +81,43 @@ public class Cliente extends JFrame implements ActionListener, KeyListener {
 
   public void conectar() throws IOException {
     socket = new Socket(txtIp.getText(), Integer.parseInt(txtPorta.getText()));
-    ou = socket.getOutputStream();
-    ouw = new OutputStreamWriter(ou);
-    bfw = new BufferedWriter(ouw);
-    bfw.write(txtNome.getText()+ "\r\n");
-    bfw.flush();
+    escritorSaidaServidor = new OutputStreamWriter(socket.getOutputStream());
+    escritorSaidaServidor.write(txtNome.getText()+ "\r\n");
+    escritorSaidaServidor.flush();
   }
 
   public void enviarMensagem(String msg) throws IOException {
     if( msg.equals("Sair")) {
-      bfw.write("Desconectado \r\n");
+      escritorSaidaServidor.write("Desconectado \r\n");
       texto.append("Desconectado \r\n");
     } else if (!msg.equals("")) {
-      bfw.write(msg + "\r\n");
+      escritorSaidaServidor.write(msg + "\r\n");
       texto.append("[" + txtNome.getText() + "]: " + txtMsg.getText()+"\r\n");
     }
-    bfw.flush();
+    escritorSaidaServidor.flush();
     txtMsg.setText("");
     txtMsg.grabFocus();
   }
 
   public void escutarServidor() throws IOException {
-    InputStream in = socket.getInputStream();
-    InputStreamReader inr = new InputStreamReader(in);
-    BufferedReader bfr = new BufferedReader(inr);
+    leitorSaidaServidor = new InputStreamReader(socket.getInputStream());
+    leitorServidor = new BufferedReader(leitorSaidaServidor);
     String msg = "";
 
-    while(!"Sair".equalsIgnoreCase(msg))
-      if(bfr.ready()) {
-        msg = bfr.readLine();
+    while(!"Sair".equalsIgnoreCase(msg)) {
+      if(leitorServidor.ready()) {
+        msg = leitorServidor.readLine();
 
-        if (msg.equals("Sair")) {
-          texto.append("Servidor caiu! \r\n");
-        } else if (!msg.contains("null")) {
+        if (!msg.contains("null")) {
           texto.append(msg + "\r\n");
         }
       }
+    }
   }
 
   public void sair() throws IOException {
     enviarMensagem("Sair");
-    bfw.close();
-    ouw.close();
-    ou.close();
+    escritorSaidaServidor.close();
     socket.close();
     System.exit(0);
   }
@@ -147,7 +139,6 @@ public class Cliente extends JFrame implements ActionListener, KeyListener {
       try {
         enviarMensagem(txtMsg.getText());
       } catch (IOException e1) {
-        // TODO Auto-generated catch block
         e1.printStackTrace();
       }
     }

@@ -1,5 +1,4 @@
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -17,15 +16,15 @@ public class Servidor extends Thread {
   private static JTextField txtPorta;
   private String nome;
   private Socket con;
-  private InputStreamReader inputStreamReader;
-  private BufferedReader servidor;
+  private InputStreamReader leitorEntradaCliente;
+  private BufferedReader leitorCliente;
 
   public Servidor(Socket con) {
     this.con = con;
 
     try {
-      inputStreamReader = new InputStreamReader(con.getInputStream());
-      servidor = new BufferedReader(inputStreamReader);
+      leitorEntradaCliente = new InputStreamReader(con.getInputStream());
+      leitorCliente = new BufferedReader(leitorEntradaCliente);
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -33,35 +32,35 @@ public class Servidor extends Thread {
 
   public void run() {
     try {
-      String msg;
-      Writer cliente = new OutputStreamWriter(this.con.getOutputStream());
-      clientes.add(cliente);
-      nome = msg = servidor.readLine();
-      enviarParaTodos(cliente, "Se conectou");
+      String message;
+      Writer escritorSaidaCliente = new OutputStreamWriter(this.con.getOutputStream());
+      clientes.add(escritorSaidaCliente);
+      nome = message = leitorCliente.readLine();
+      enviarParaTodos(escritorSaidaCliente, "Se conectou");
       
-      while(!"Sair".equalsIgnoreCase(msg) && msg != null) {
-        msg = servidor.readLine();
-        enviarParaTodos(cliente, msg);
+      while(!"Sair".equalsIgnoreCase(message) && message != null) {
+        message = leitorCliente.readLine();
+        enviarParaTodos(escritorSaidaCliente, message);
       } 
 
-      clientes.remove(cliente);
-      cliente.close();
-      servidor.close();
+      clientes.remove(escritorSaidaCliente);
+      escritorSaidaCliente.close();
+      leitorCliente.close();
     } catch (Exception e) {
       e.printStackTrace();
 
     }
   }
 
-  public void enviarParaTodos(Writer cliente2, String msg) throws  IOException {
+  public void enviarParaTodos(Writer escritorCliente, String msg) throws  IOException {
     msg = "[" + nome + "]: " + msg+ "\r\n";
     
     System.out.println(msg);
     
-    for(Writer cliente : clientes) {
-      if(!(cliente2 == cliente)) {
-        cliente.write(msg);
-        cliente.flush();
+    for(Writer escritorOutroCliente : clientes) {
+      if(escritorCliente != escritorOutroCliente) {
+        escritorOutroCliente.write(msg);
+        escritorOutroCliente.flush();
       }
     }
   }
@@ -86,5 +85,4 @@ public class Servidor extends Thread {
       e.printStackTrace();
     }
   }
-
 }
